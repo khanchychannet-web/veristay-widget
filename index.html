@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VeriStay — Check</title>
+<style>
+  body{font-family:Inter,system-ui,Arial;margin:0;background:#f7fafb;padding:24px}
+  .card{max-width:680px;margin:0 auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+  h1{margin:0 0 8px;font-size:22px}
+  .muted{color:#607d8b;font-size:14px}
+  .row{display:flex;gap:8px;margin:16px 0}
+  input[type=url]{flex:1;padding:12px;border:1px solid #cfd8dc;border-radius:8px}
+  button{padding:12px 16px;border:0;border-radius:8px;background:#008C9E;color:#fff;cursor:pointer;font-weight:600}
+  .result{margin-top:16px;padding:16px;border-radius:10px}
+  .green{background:#e8f5e9;border:1px solid #a5d6a7}
+  .amber{background:#fff8e1;border:1px solid #ffe082}
+  .red{background:#ffebee;border:1px solid #ef9a9a}
+  ul{margin:8px 0 0 18px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔍 VeriStay Score</h1>
+    <p class="muted">Встав лінк на оголошення (Daft/Facebook). Отримаєш оцінку безпечності.</p>
+    <div class="row">
+      <input id="url" type="url" placeholder="https://www.daft.ie/..." required>
+      <button id="checkBtn">Перевірити</button>
+    </div>
+    <div id="out"></div>
+    <p class="muted">Застереження: це індикатор ризику, а не юридична порада.</p>
+  </div>
+<script>
+const API = "https://veristay-score.onrender.com/score"; // твій Render URL
+const $url = document.getElementById('url');
+const $btn = document.getElementById('checkBtn');
+const $out = document.getElementById('out');
+
+async function check() {
+  const link = $url.value.trim();
+  if (!link) return;
+  $btn.disabled = true; $btn.textContent = "Перевіряємо..."; $out.innerHTML = "";
+  try{
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: link })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const band = (data.band||"Amber").toLowerCase();
+    const cls = band==="green"?"green":(band==="red"?"red":"amber");
+    const reasons = (data.reasons||[]).map(r=>`<li>${r}</li>`).join("");
+    $out.innerHTML = `<div class="result ${cls}">
+      <strong>Оцінка:</strong> ${data.score}/100 — <strong>${data.band}</strong><br/>
+      <strong>Чому:</strong><ul>${reasons || "<li>Серйозних ризиків не виявлено.</li>"}</ul>
+    </div>`;
+  }catch(e){
+    $out.innerHTML = `<div class="result red"><strong>Помилка:</strong> ${e.message}</div>`;
+  }finally{
+    $btn.disabled=false; $btn.textContent="Перевірити";
+  }
+}
+$btn.addEventListener('click', check);
+$url.addEventListener('keydown', e=>{ if(e.key==='Enter') check(); });
+</script>
+</body>
+</html>
